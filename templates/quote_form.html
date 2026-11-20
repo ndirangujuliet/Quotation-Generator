@@ -2,7 +2,6 @@
 {% block title %}New quote{% endblock %}
 {% block content %}
 <form method="post" id="quote-form">
-  <form method="post" id="quote-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <div class="head">
@@ -11,7 +10,8 @@
         <img class="logo-img" src="{{ url_for('static', filename=company.logo) }}" alt="Logo">
       {% endif %}
       <div class="name">{{ company.name }}</div>
-      <div>{{ company.email }}{% if company.email and company.phone %} · {% endif %}{{ company.phone }}</div>
+      {% if company.email %}<div>{{ company.email }}</div>{% endif %}
+      {% if company.phone %}<div>{{ company.phone }}</div>{% endif %}
       <div>{{ company.address }}</div>
       {% if company.kra_pin %}<div>PIN: {{ company.kra_pin }}</div>{% endif %}
     </div>
@@ -30,12 +30,23 @@
 
   <div class="cust">
     <span class="lbl">Quote for</span>
-    <select name="customer_id" required>
+    <select name="customer_id" id="customer-select" required>
       <option value="">Select customer…</option>
+      <option value="new">+ New customer…</option>
       {% for c in customers %}
         <option value="{{ c.id }}">{{ c.name }}</option>
       {% endfor %}
     </select>
+
+    <div class="newcust" id="new-customer" hidden>
+      <input id="new_name" name="new_name" placeholder="Customer name *" maxlength="200">
+      <input name="new_kra_pin" placeholder="KRA PIN" maxlength="30">
+      <input name="new_phone" type="tel" inputmode="tel" placeholder="Phone" maxlength="16"
+             pattern="(0[0-9]{9}|\+[0-9]{8,15}|254[0-9]{9})"
+             title="10 digits starting with 0 (0712345678) or international (+254712345678)">
+      <input name="new_email" type="email" placeholder="Email" maxlength="150">
+      <input name="new_address" placeholder="Address" maxlength="300">
+    </div>
   </div>
 
   <div class="tw">
@@ -170,4 +181,5 @@
   addRow();   // start with one row
 })();
 </script>
+<script src="{{ url_for('static', filename='quote-customer.js') }}"></script>
 {% endblock %}

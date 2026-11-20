@@ -15,6 +15,57 @@ def get_customers():
         cur.execute("SELECT id, name, kra_pin FROM customers ORDER BY name")
         return rows_as_dicts(cur)
 
+def create_customer(name, kra_pin=None, address=None, email=None, phone=None):
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO customers (name, kra_pin, address, email, phone)
+               OUTPUT INSERTED.id
+               VALUES (?, ?, ?, ?, ?)""",
+            (name, kra_pin, address, email, phone))
+        return cur.fetchone()[0]
+
+def list_customers():
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """SELECT c.id, c.name, c.kra_pin, c.email, c.phone,
+                      (SELECT COUNT(*) FROM quotes q WHERE q.customer_id = c.id) AS quote_count
+               FROM customers c ORDER BY c.name""")
+        return rows_as_dicts(cur)
+
+
+def get_customer(customer_id):
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, name, kra_pin, address, email, phone FROM customers WHERE id = ?",
+            (customer_id,))
+        return _one(cur)
+
+
+def update_customer(customer_id, name, kra_pin, address, email, phone):
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """UPDATE customers
+               SET name = ?, kra_pin = ?, address = ?, email = ?, phone = ?
+               WHERE id = ?""",
+            (name, kra_pin, address, email, phone, customer_id))
+
+
+def count_customer_quotes(customer_id):
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM quotes WHERE customer_id = ?", (customer_id,))
+        return cur.fetchone()[0]
+
+
+def delete_customer(customer_id):
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM customers WHERE id = ?", (customer_id,))   
+
 
 def get_products():
     with get_conn() as conn:
@@ -81,6 +132,13 @@ def list_quotes():
                FROM quotes q JOIN customers c ON c.id = q.customer_id
                ORDER BY q.id DESC""")
         return rows_as_dicts(cur)
+
+def delete_quote(quote_id):
+    """Deletes a quote and its lines in ONE transaction."""
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM quote_items WHERE quote_id = ?", (quote_id,))
+        cur.execute("DELETE FROM quotes WHERE id = ?", (quote_id,))
 
 
 # ---------- company settings ----------

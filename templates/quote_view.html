@@ -2,11 +2,17 @@
 {% block title %}{{ quote.quote_no }}{% endblock %}
 {% block actions %}
   <button class="btn primary" onclick="window.print()">Print / Save as PDF</button>
+  {% if current_user.role == 'admin' %}
+  <form method="post" action="{{ url_for('quote_delete', quote_id=quote.id) }}"
+        onsubmit="return confirm('Delete {{ quote.quote_no }}? This cannot be undone.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn" type="submit">Delete quote</button>
+  </form>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
 {% set code = {'STANDARD': 'S', 'ZERO_RATED': 'Z', 'EXEMPT': 'E'} %}
-{% set label = {'STANDARD': 'Standard', 'ZERO_RATED': 'Zero-rated', 'EXEMPT': 'Exempt'} %}
 {% set cur = quote.currency %}
 
 <div class="head">
@@ -15,7 +21,8 @@
       <img class="logo-img" src="{{ url_for('static', filename=company.logo) }}" alt="Logo">
     {% endif %}
     <div class="name">{{ company.name }}</div>
-    <div>{{ company.email }}{% if company.email and company.phone %} · {% endif %}{{ company.phone }}</div>
+    {% if company.email %}<div>{{ company.email }}</div>{% endif %}
+    {% if company.phone %}<div>{{ company.phone }}</div>{% endif %}
     <div>{{ company.address }}</div>
     {% if company.kra_pin %}<div>PIN: {{ company.kra_pin }}</div>{% endif %}
   </div>
@@ -33,9 +40,8 @@
 <div class="cust">
   <span class="lbl">Quote for</span>
   <div><strong>{{ quote.customer_name }}</strong></div>
-  {% if quote.email or quote.phone %}
-    <div>{{ quote.email or '' }}{% if quote.email and quote.phone %} · {% endif %}{{ quote.phone or '' }}</div>
-  {% endif %}
+  {% if quote.email %}<div>{{ quote.email }}</div>{% endif %}
+  {% if quote.phone %}<div>{{ quote.phone }}</div>{% endif %}
   {% if quote.address %}<div>{{ quote.address }}</div>{% endif %}
   {% if quote.kra_pin %}<div>PIN: {{ quote.kra_pin }}</div>{% endif %}
 </div>
@@ -67,10 +73,6 @@
   </table>
 </div>
 
-<p class="legend">
-  S = Standard ({{ '%g'|format(quote.vat_rate) }}%) &nbsp;|&nbsp; Z = Zero-rated (0%) &nbsp;|&nbsp; E = Exempt (no VAT)
-</p>
-
 <div class="tot">
   <span>Subtotal</span><span class="val">{{ cur }} {{ quote.subtotal|money }}</span>
   {% if quote.discount_total > 0 %}
@@ -80,24 +82,6 @@
   <span>VAT</span><span class="val">{{ cur }} {{ quote.total_vat|money }}</span>
   <span class="grand">Grand total</span>
   <span class="grand val">{{ cur }} {{ quote.grand_total|money }}</span>
-</div>
-
-<h3 class="lbl" style="margin-top:22px">VAT summary</h3>
-<div class="tw">
-  <table class="summary">
-    <thead>
-      <tr><th>Category</th><th class="n">Net amount</th><th class="n">VAT</th></tr>
-    </thead>
-    <tbody>
-      {% for cat, v in summary.items() %}
-      <tr>
-        <td>{{ label[cat] }}{% if cat == 'STANDARD' %} ({{ '%g'|format(quote.vat_rate) }}%){% endif %}</td>
-        <td class="n">{{ v.net|money }}</td>
-        <td class="n">{% if cat == 'EXEMPT' %}n/a{% else %}{{ v.vat|money }}{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </div>
 
 {% if quote.terms %}

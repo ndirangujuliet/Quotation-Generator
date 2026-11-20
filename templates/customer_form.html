@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit customer' if editing else 'New customer' }}{% endblock %}
+{% block content %}
+<h1>{{ 'Edit customer' if editing else 'New customer' }}</h1>
+
+<form method="post" class="form-grid">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <label>Customer name *
+    <input name="name" value="{{ c.name or '' }}" maxlength="200" required autofocus>
+  </label>
+  <label>KRA PIN
+    <input name="kra_pin" value="{{ c.kra_pin or '' }}" maxlength="30">
+  </label>
+  <label>Phone
+    <input name="phone" type="tel" inputmode="tel" value="{{ c.phone or '' }}" maxlength="16"
+           pattern="(0[0-9]{9}|\+[0-9]{8,15}|254[0-9]{9})"
+           title="10 digits starting with 0 (0712345678) or international (+254712345678)">
+  </label>
+  <label>Email
+    <input name="email" type="email" value="{{ c.email or '' }}" maxlength="150">
+  </label>
+  <label>Address
+    <input name="address" value="{{ c.address or '' }}" maxlength="300">
+  </label>
+
+  <div class="addrow">
+    <button class="btn primary" type="submit">Save</button>
+    <a class="btn" href="{{ url_for('customers') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

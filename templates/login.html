@@ -1,41 +1,82 @@
-{% extends "auth_base.html" %}
-{% block title %}Sign in{% endblock %}
-{% block content %}
-<h1 class="auth-title">Sign in</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · Quotations</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body>
+<div class="lg">
 
-{% if error %}
-  <div class="flash error" role="alert">{{ error }}</div>
-{% endif %}
+  <aside class="lg-side">
+    <div class="lg-brand">
+      <span class="lg-mark" aria-hidden="true"></span>
+      <span class="lg-name">Quotations</span>
+    </div>
 
-<form method="post" class="auth-form">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <input type="hidden" name="next" value="{{ next_url }}">
+    <div class="lg-hero">
+      <h2>Professional quotes, ready in minutes.</h2>
+      <p>Pick a customer, add your items, and let the totals and VAT work themselves out.</p>
+    </div>
 
-  <div class="field">
-    <label for="username">Username</label>
-    <input id="username" name="username" value="{{ username }}"
-           autocomplete="username" autofocus required>
-  </div>
+    <div class="lg-doc" aria-hidden="true">
+      <div class="lg-doc-top"><span class="lg-bar w40"></span><span class="lg-tag">QT-2026-0001</span></div>
+      <div class="lg-row"><span class="lg-bar w70"></span><span class="lg-bar w20"></span></div>
+      <div class="lg-row"><span class="lg-bar w55"></span><span class="lg-bar w20"></span></div>
+      <div class="lg-row"><span class="lg-bar w65"></span><span class="lg-bar w20"></span></div>
+      <div class="lg-total"><span class="lg-bar w25"></span><span class="lg-pill">Total</span></div>
+    </div>
+  </aside>
 
-  <div class="field">
-    <label for="password">Password</label>
-    <input id="password" class="pw" type="password" name="password"
-           autocomplete="current-password" required>
-  </div>
+  <main class="lg-main">
+    <button class="lg-theme" type="button" id="theme-toggle"
+            title="Switch light/dark mode" aria-label="Switch light or dark mode">🌓</button>
 
-  <label class="check"><input type="checkbox" id="show"> Show password</label>
-  <label class="check"><input type="checkbox" name="remember"> Keep me signed in on this computer</label>
+    <div class="lg-wrap">
+      <div class="lg-mobile-brand">
+        <span class="lg-mark" aria-hidden="true"></span><span>Quotations</span>
+      </div>
 
-  <button class="btn primary wide" type="submit">Sign in</button>
-</form>
+      <h1 class="lg-title">Welcome back</h1>
+      <p class="lg-sub">Sign in to manage your quotations.</p>
 
-<p class="hint">Forgot your password? Ask an administrator to reset it for you.</p>
+      {% if error %}
+        <div class="flash error" role="alert">{{ error }}</div>
+      {% endif %}
 
-<script>
-  document.getElementById("show").addEventListener("change", function (e) {
-    document.querySelectorAll(".pw").forEach(function (i) {
-      i.type = e.target.checked ? "text" : "password";
-    });
-  });
-</script>
-{% endblock %}
+      <form method="post" class="lg-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ next_url }}">
+
+        <div class="lg-field">
+          <label for="username">Username</label>
+          <input id="username" name="username" value="{{ username }}"
+                 autocomplete="username" autofocus required>
+        </div>
+
+        <div class="lg-field">
+          <label for="password">Password</label>
+          <div class="lg-pw">
+            <input id="password" type="password" name="password"
+                   autocomplete="current-password" required>
+            <button class="lg-eye" type="button" id="toggle-pw" aria-label="Show password">Show</button>
+          </div>
+        </div>
+
+        <label class="lg-check">
+          <input type="checkbox" name="remember"> Keep me signed in on this computer
+        </label>
+
+        <button class="lg-submit" type="submit">Sign in</button>
+      </form>
+
+      <p class="lg-hint">Forgot your password? Ask an administrator to reset it for you.</p>
+    </div>
+  </main>
+</div>
+<script src="{{ url_for('static', filename='login.js') }}"></script>
+</body>
+</html>

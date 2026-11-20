@@ -22,12 +22,19 @@ ALLOWED_LOGO = {"png", "jpg", "jpeg", "gif", "webp"}
 MAX_ATTEMPTS = 5                 # wrong passwords before the account locks
 LOCK_MINUTES = 15
 USERNAME_RE = re.compile(r"^[A-Za-z0-9._-]{3,50}$")
+PHONE_CHARS_RE = re.compile(r"\+?[0-9 ()\-]+")
+PHONE_ERROR = ("Enter a valid phone number: 10 digits starting with 0 (e.g. 0712345678) "
+               "or international format (e.g. +254712345678).")
 DUMMY_HASH = generate_password_hash("not-a-real-password")   # keeps timing similar for unknown usernames
 PUBLIC_ENDPOINTS = {"login", "setup", "static"}
 
 
 class SettingsError(ValueError):
     """Raised when the settings form is invalid."""
+
+
+class CustomerError(ValueError):
+    """Raised when the customer form is invalid."""
 
 
 # ---------- settings, globals ----------
@@ -124,6 +131,33 @@ def check_new_user(full_name, username):
     if repo.get_user_by_username(username):
         return "That username is already taken."
     return None
+
+
+def text_field(form, field, limit):
+    """Trimmed text from a form field, cut to `limit` characters. None if empty."""
+    return (form.get(field) or "").strip()[:limit] or None
+
+
+def clean_phone(value, error_cls):
+    """Returns the phone number in a standard form (digits, optional leading +).
+    None if blank. Raises error_cls if it is not a valid number."""
+    value = (value or "").strip()
+    if not value:
+        return None
+    if not PHONE_CHARS_RE.fullmatch(value):
+        raise error_cls(PHONE_ERROR)
+
+    number = re.sub(r"[ ()\-]", "", value)            # drop spaces, dashes, brackets
+    if re.fullmatch(r"254[0-9]{9}", number):          # 254712345678 -> +254712345678
+        number = "+" + number
+
+    kenyan_local = re.fullmatch(r"0[0-9]{9}", number)
+    international = re.fullmatch(r"\+[0-9]{8,15}", number)
+    if number.startswith("+254") and len(number) != 13:
+        international = None                          # Kenyan numbers are +254 and 9 digits
+    if not (kenyan_local or international):
+        raise error_cls(PHONE_ERROR)
+    return number
 
 
 # ---------- sign in / out ----------
@@ -294,10 +328,25 @@ def parse_items(form):
 
 def read_quote_form(form):
     s = settings()
-    try:
-        customer_id = int(form.get("customer_id", ""))
-    except ValueError:
-        raise QuoteError("Please select a customer.")
+    customer_id = None
+    new_customer = None
+
+    if form.get("customer_id") == "new":
+        name = text_field(form, "new_name", 200)
+        if not name:
+            raise QuoteError("Please enter the customer's name.")
+        new_customer = {
+            "name": name,
+            "kra_pin": text_field(form, "new_kra_pin", 30),
+            "address": text_field(form, "new_address", 300),
+            "email": text_field(form, "new_email", 150),
+            "phone": clean_phone(form.get("new_phone"), QuoteError),
+        }
+    else:
+        try:
+            customer_id = int(form.get("customer_id", ""))
+        except ValueError:
+            raise QuoteError("Please select a customer.")
 
     try:
         valid_days = int(form.get("valid_days") or s["default_valid_days"])
@@ -308,6 +357,7 @@ def read_quote_form(form):
 
     return {
         "customer_id": customer_id,
+        "new_customer": new_customer,
         "valid_days": valid_days,
         "currency": (form.get("currency") or s["default_currency"]).strip().upper()[:10],
         "discount_percent": form.get("discount_percent") or "0",
@@ -337,7 +387,10 @@ def new_quote():
         except QuoteError as e:
             flash(str(e), "error")
         else:
-            quote_id = repo.save_quote(data["customer_id"], result, data["valid_days"],
+            customer_id = data["customer_id"]
+            if data["new_customer"]:
+                customer_id = repo.create_customer(**data["new_customer"])
+            quote_id = repo.save_quote(customer_id, result, data["valid_days"],
                                        data["currency"], data["terms"])
             return redirect(url_for("view_quote", quote_id=quote_id))
 
@@ -361,6 +414,84 @@ def view_quote(quote_id):
         summary[i["tax_category"]]["vat"] += i["line_vat"]
 
     return render_template("quote_view.html", quote=quote, summary=summary)
+
+@app.route("/quotes/<int:quote_id>/delete", methods=["POST"])
+@admin_required
+def quote_delete(quote_id):
+    quote = repo.get_quote(quote_id)
+    if quote is None:
+        abort(404)
+    repo.delete_quote(quote_id)
+    flash(f"Quote {quote['quote_no']} deleted.", "ok")
+    return redirect(url_for("quotes"))
+
+
+# ---------- customers ----------
+
+def read_customer_form(form):
+    name = text_field(form, "name", 200)
+    if not name:
+        raise CustomerError("Customer name is required.")
+    return {
+        "name": name,
+        "kra_pin": text_field(form, "kra_pin", 30),
+        "address": text_field(form, "address", 300),
+        "email": text_field(form, "email", 150),
+        "phone": clean_phone(form.get("phone"), CustomerError),
+    }
+
+
+@app.route("/customers")
+def customers():
+    return render_template("customers.html", customers=repo.list_customers())
+
+
+@app.route("/customers/new", methods=["GET", "POST"])
+def customer_new():
+    c = {}
+    if request.method == "POST":
+        c = request.form.to_dict()
+        try:
+            data = read_customer_form(request.form)
+        except CustomerError as e:
+            flash(str(e), "error")
+        else:
+            repo.create_customer(**data)
+            flash("Customer added.", "ok")
+            return redirect(url_for("customers"))
+    return render_template("customer_form.html", c=c, editing=False)
+
+
+@app.route("/customers/<int:customer_id>/edit", methods=["GET", "POST"])
+def customer_edit(customer_id):
+    c = repo.get_customer(customer_id)
+    if c is None:
+        abort(404)
+    if request.method == "POST":
+        c = {**c, **request.form.to_dict()}          # keep what was typed if there is an error
+        try:
+            data = read_customer_form(request.form)
+        except CustomerError as e:
+            flash(str(e), "error")
+        else:
+            repo.update_customer(customer_id, **data)
+            flash("Customer updated.", "ok")
+            return redirect(url_for("customers"))
+    return render_template("customer_form.html", c=c, editing=True)
+
+
+@app.route("/customers/<int:customer_id>/delete", methods=["POST"])
+@admin_required
+def customer_delete(customer_id):
+    c = repo.get_customer(customer_id)
+    if c is None:
+        abort(404)
+    if repo.count_customer_quotes(customer_id) > 0:
+        flash(f"{c['name']} has quotes and cannot be deleted.", "error")
+    else:
+        repo.delete_customer(customer_id)
+        flash(f"{c['name']} deleted.", "ok")
+    return redirect(url_for("customers"))
 
 
 # ---------- company settings (admin) ----------

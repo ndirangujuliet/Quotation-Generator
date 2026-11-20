@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Customers{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Customers</h1>
+  <a class="btn primary" href="{{ url_for('customer_new') }}">+ New customer</a>
+</div>
+
+{% if customers %}
+<div class="tw">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th><th>KRA PIN</th><th>Phone</th><th>Email</th>
+        <th class="n">Quotes</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in customers %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td>{{ c.kra_pin or '' }}</td>
+        <td>{{ c.phone or '' }}</td>
+        <td>{{ c.email or '' }}</td>
+        <td class="n">{{ c.quote_count }}</td>
+        <td>
+          <div class="actions">
+            <a class="btn" href="{{ url_for('customer_edit', customer_id=c.id) }}">Edit</a>
+            {% if current_user.role == 'admin' and c.quote_count == 0 %}
+            <form method="post" action="{{ url_for('customer_delete', customer_id=c.id) }}"
+                  data-confirm="Delete {{ c.name }}? This cannot be undone.">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn" type="submit">Delete</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+  <p class="hint">No customers yet. Add one here, or create one while writing a quote.</p>
+{% endif %}
+
+<script src="{{ url_for('static', filename='customers.js') }}"></script>
+{% endblock %}
