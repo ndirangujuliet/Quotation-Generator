@@ -1,6 +1,6 @@
-# QuoteGen
+# Quotation Generator
 
-QuoteGen is a Flask web application for creating and managing customer quotations. It supports customer and product selection, configurable company details, VAT-aware totals, discounts, user accounts, and printable quote pages.
+Quotation Generator is a Flask web application for creating and managing customer quotations. It supports customer and product selection, configurable company details, VAT-aware totals, discounts, user accounts, and printable quote pages.
 
 ## Features
 
