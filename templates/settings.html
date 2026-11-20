@@ -14,7 +14,9 @@
     <input name="email" type="email" value="{{ s.email or '' }}" maxlength="150">
   </label>
   <label>Phone
-    <input name="phone" value="{{ s.phone or '' }}" maxlength="40">
+    <input name="phone" type="tel" inputmode="tel" value="{{ s.phone or '' }}" maxlength="16"
+           pattern="(0[0-9]{9}|\+[0-9]{8,15}|254[0-9]{9})"
+           title="10 digits starting with 0 (0712345678) or international (+254712345678)">
   </label>
   <label>Address
     <input name="address" value="{{ s.address or '' }}" maxlength="255">

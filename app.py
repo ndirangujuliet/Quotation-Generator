@@ -521,7 +521,7 @@ def read_settings_form(form):
     return {
         "name": name[:150],
         "email": text("email", 150),
-        "phone": text("phone", 40),
+        "phone": clean_phone(form.get("phone"), SettingsError),
         "address": text("address", 255),
         "kra_pin": text("kra_pin", 20),
         "vat_rate": vat_rate,
