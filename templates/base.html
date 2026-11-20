@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Quotations{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  {% if current_user %}
+  <div class="bar no-print">
+    <a class="btn" href="{{ url_for('quotes') }}">All quotes</a>
+    <a class="btn" href="{{ url_for('new_quote') }}">+ New quote</a>
+    {% if current_user.role == 'admin' %}
+      <a class="btn" href="{{ url_for('company_settings') }}">Settings</a>
+      <a class="btn" href="{{ url_for('users') }}">Users</a>
+    {% endif %}
+    {% block actions %}{% endblock %}
+    <span class="spacer"></span>
+    <a class="btn" href="{{ url_for('account') }}" title="Change my password">{{ current_user.full_name }}</a>
+    <form method="post" action="{{ url_for('logout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn" type="submit">Sign out</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <main class="paper">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

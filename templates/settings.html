@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Company settings{% endblock %}
+{% block content %}
+<h1>Company settings</h1>
+<p class="hint">These details appear at the top of every quote.</p>
+
+<form method="post" enctype="multipart/form-data" class="form-grid">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <label>Company name
+    <input name="name" value="{{ s.name }}" maxlength="150" required>
+  </label>
+  <label>Email
+    <input name="email" type="email" value="{{ s.email or '' }}" maxlength="150">
+  </label>
+  <label>Phone
+    <input name="phone" value="{{ s.phone or '' }}" maxlength="40">
+  </label>
+  <label>Address
+    <input name="address" value="{{ s.address or '' }}" maxlength="255">
+  </label>
+  <label>KRA PIN
+    <input name="kra_pin" value="{{ s.kra_pin or '' }}" maxlength="20">
+  </label>
+
+  <div class="logo-block">
+    <span class="lbl">Logo</span>
+    {% if s.logo_file %}
+      <img class="logo-img" src="{{ url_for('static', filename='uploads/' + s.logo_file) }}" alt="Current logo">
+      <label class="check"><input type="checkbox" name="remove_logo"> Remove current logo</label>
+    {% endif %}
+    <input type="file" name="logo" accept="image/png,image/jpeg,image/gif,image/webp">
+    <span class="hint">PNG, JPG, GIF or WEBP, up to 2 MB. Uploading a new file replaces the old one.</span>
+  </div>
+
+  <h3 class="lbl">Quote defaults</h3>
+  <label>VAT rate (%) on Standard items
+    <input name="vat_rate" type="number" min="0" max="100" step="0.01" value="{{ '%g'|format(s.vat_rate) }}" required>
+  </label>
+  <label>Default currency
+    <input name="default_currency" value="{{ s.default_currency }}" maxlength="10" required>
+  </label>
+  <label>Default validity (days)
+    <input name="default_valid_days" type="number" min="1" value="{{ s.default_valid_days }}" required>
+  </label>
+  <label>Default terms &amp; notes
+    <textarea name="default_terms">{{ s.default_terms or '' }}</textarea>
+  </label>
+
+  <p><button type="submit" class="btn primary">Save settings</button></p>
+</form>
+{% endblock %}

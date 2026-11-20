@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Quotations</h1>
+{% if quotes %}
+<div class="tw">
+  <table>
+    <thead>
+      <tr><th>Quote no.</th><th>Customer</th><th>Date</th><th class="n">Total</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for q in quotes %}
+      <tr>
+        <td>{{ q.quote_no }}</td>
+        <td>{{ q.customer_name }}</td>
+        <td>{{ q.issue_date }}</td>
+        <td class="n">{{ q.currency }} {{ q.grand_total|money }}</td>
+        <td><a href="{{ url_for('view_quote', quote_id=q.id) }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p>No quotes yet. <a href="{{ url_for('new_quote') }}">Create the first one.</a></p>
+{% endif %}
+{% endblock %}

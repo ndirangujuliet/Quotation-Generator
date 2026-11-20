@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}My account{% endblock %}
+{% block content %}
+<h1>My account</h1>
+<p>Signed in as <strong>{{ current_user.full_name }}</strong> ({{ current_user.username }}, {{ current_user.role }}).</p>
+
+<h3 class="lbl">Change my password</h3>
+<form method="post" class="auth-form" style="max-width:380px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="field">
+    <label for="current">Current password</label>
+    <input id="current" class="pw" type="password" name="current" autocomplete="current-password" required>
+  </div>
+  <div class="field">
+    <label for="password">New password</label>
+    <input id="password" class="pw" type="password" name="password"
+           autocomplete="new-password" minlength="8" required>
+    <span class="hint">At least 8 characters.</span>
+  </div>
+  <div class="field">
+    <label for="confirm">Confirm new password</label>
+    <input id="confirm" class="pw" type="password" name="confirm"
+           autocomplete="new-password" minlength="8" required>
+  </div>
+
+  <label class="check"><input type="checkbox" id="show"> Show passwords</label>
+  <button class="btn primary" type="submit">Change password</button>
+</form>
+
+<script>
+  document.getElementById("show").addEventListener("change", function (e) {
+    document.querySelectorAll(".pw").forEach(function (i) {
+      i.type = e.target.checked ? "text" : "password";
+    });
+  });
+</script>
+{% endblock %}

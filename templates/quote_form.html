@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}New quote{% endblock %}
+{% block content %}
+<form method="post" id="quote-form">
+  <form method="post" id="quote-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="head">
+    <div class="co">
+      {% if company.logo %}
+        <img class="logo-img" src="{{ url_for('static', filename=company.logo) }}" alt="Logo">
+      {% endif %}
+      <div class="name">{{ company.name }}</div>
+      <div>{{ company.email }}{% if company.email and company.phone %} · {% endif %}{{ company.phone }}</div>
+      <div>{{ company.address }}</div>
+      {% if company.kra_pin %}<div>PIN: {{ company.kra_pin }}</div>{% endif %}
+    </div>
+    <div>
+      <h1>QUOTATION</h1>
+      <div class="meta">
+        <label>Quote No.</label><span>Assigned on save</span>
+        <label>Date</label><span>{{ today }}</span>
+        <label for="valid_days">Valid (days)</label>
+        <input id="valid_days" name="valid_days" type="number" min="1" value="{{ defaults.valid_days }}">
+        <label for="currency">Currency</label>
+        <input id="currency" name="currency" value="{{ defaults.currency }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="cust">
+    <span class="lbl">Quote for</span>
+    <select name="customer_id" required>
+      <option value="">Select customer…</option>
+      {% for c in customers %}
+        <option value="{{ c.id }}">{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="tw">
+    <table id="items">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th class="n" style="width:80px">Qty</th>
+          <th class="n" style="width:120px">Unit price</th>
+          <th style="width:130px">VAT category</th>
+          <th class="n" style="width:120px">Total</th>
+          <th style="width:30px"></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="addrow">
+    <button type="button" id="add-row">+ Add item</button>
+    <select id="catalogue">
+      <option value="">+ Add from catalogue…</option>
+      {% for p in products %}
+        <option value="{{ p.id }}" data-name="{{ p.name }}"
+                data-price="{{ p.unit_price }}" data-cat="{{ p.tax_category }}">{{ p.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="tot">
+    <span>Subtotal</span><span class="val" id="t-sub"></span>
+    <span>Discount (%)</span><input id="discount_percent" name="discount_percent" type="number" min="0" max="100" step="any" value="0">
+    <span>Discount amount</span><span class="val" id="t-disc"></span>
+    <span>VAT ({{ '%g'|format(vat_rate) }}%, Standard items only)</span><span class="val" id="t-vat"></span>
+    <span class="grand">Grand total</span><span class="grand val" id="t-grand"></span>
+  </div>
+  <p class="hint">These totals are a preview. The server recalculates them when you save.</p>
+
+  <div class="terms">
+    <span class="lbl">Terms &amp; notes</span>
+    <textarea name="terms">{{ defaults.terms }}</textarea>
+  </div>
+
+  <p><button type="submit" class="btn primary">Save quote</button></p>
+</form>
+
+<template id="row-template">
+  <tr>
+    <td><input type="text" name="description" placeholder="Item or service" required></td>
+    <td><input class="num" type="number" name="qty" value="1" min="0.01" step="any" required></td>
+    <td><input class="num" type="number" name="unit_price" value="0" min="0" step="any" required></td>
+    <td>
+      <select name="tax_category">
+        <option value="STANDARD">Standard</option>
+        <option value="ZERO_RATED">Zero-rated</option>
+        <option value="EXEMPT">Exempt</option>
+      </select>
+    </td>
+    <td class="n line-total"></td>
+    <td><button type="button" class="x" title="Remove">✕</button></td>
+  </tr>
+</template>
+
+<script>
+(function () {
+  const VAT_RATE = parseFloat("{{ '%g'|format(vat_rate) }}") / 100;
+  const tbody = document.querySelector("#items tbody");
+  const tpl = document.getElementById("row-template");
+  const disc = document.getElementById("discount_percent");
+  const cur = document.getElementById("currency");
+  const catalogue = document.getElementById("catalogue");
+
+  const round2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+  const fmt = n => n.toLocaleString("en-KE", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const money = n => ((cur.value || "") + " " + fmt(n)).trim();
+
+  function addRow(data) {
+    tbody.appendChild(tpl.content.cloneNode(true));
+    const row = tbody.lastElementChild;
+    if (data) {
+      row.querySelector('[name="description"]').value = data.name;
+      row.querySelector('[name="unit_price"]').value = data.price;
+      row.querySelector('[name="tax_category"]').value = data.cat;
+    }
+    recalc();
+  }
+
+  function recalc() {
+    const d = Math.min(Math.max(parseFloat(disc.value) || 0, 0), 100);
+    let sub = 0, discTotal = 0, vat = 0;
+
+    tbody.querySelectorAll("tr").forEach(row => {
+      const qty = parseFloat(row.querySelector('[name="qty"]').value) || 0;
+      const price = parseFloat(row.querySelector('[name="unit_price"]').value) || 0;
+      const cat = row.querySelector('[name="tax_category"]').value;
+
+      const net = round2(qty * price);
+      const lineDisc = round2(net * d / 100);                                   // discount first
+      const lineVat = cat === "STANDARD" ? round2((net - lineDisc) * VAT_RATE) : 0;  // tax only on Standard
+
+      row.querySelector(".line-total").textContent = fmt(net);
+      sub += net; discTotal += lineDisc; vat += lineVat;
+    });
+
+    document.getElementById("t-sub").textContent = money(sub);
+    document.getElementById("t-disc").textContent = "-" + money(discTotal);
+    document.getElementById("t-vat").textContent = money(vat);
+    document.getElementById("t-grand").textContent = money(sub - discTotal + vat);
+  }
+
+  document.getElementById("add-row").addEventListener("click", () => addRow());
+
+  catalogue.addEventListener("change", () => {
+    const opt = catalogue.selectedOptions[0];
+    if (opt.value) {
+      addRow({name: opt.dataset.name, price: opt.dataset.price, cat: opt.dataset.cat});
+      catalogue.value = "";
+    }
+  });
+
+  tbody.addEventListener("input", recalc);
+  tbody.addEventListener("change", recalc);
+  tbody.addEventListener("click", e => {
+    if (e.target.classList.contains("x") && tbody.querySelectorAll("tr").length > 1) {
+      e.target.closest("tr").remove();
+      recalc();
+    }
+  });
+  disc.addEventListener("input", recalc);
+  cur.addEventListener("input", recalc);
+
+  addRow();   // start with one row
+})();
+</script>
+{% endblock %}

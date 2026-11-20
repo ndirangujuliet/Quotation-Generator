@@ -1,0 +1,47 @@
+{% extends "auth_base.html" %}
+{% block title %}First-time setup{% endblock %}
+{% block content %}
+<h1 class="auth-title">Create the administrator account</h1>
+<p class="hint">Welcome! There are no users yet. This first account can manage company settings and add other users.</p>
+
+<form method="post" class="auth-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="field">
+    <label for="full_name">Full name</label>
+    <input id="full_name" name="full_name" autocomplete="name" autofocus required>
+  </div>
+
+  <div class="field">
+    <label for="username">Username</label>
+    <input id="username" name="username" autocomplete="username" required
+           pattern="[A-Za-z0-9._\-]{3,50}" title="3 to 50 characters: letters, numbers, dot, dash or underscore">
+    <span class="hint">Letters, numbers, dot, dash or underscore.</span>
+  </div>
+
+  <div class="field">
+    <label for="password">Password</label>
+    <input id="password" class="pw" type="password" name="password"
+           autocomplete="new-password" minlength="8" required>
+    <span class="hint">At least 8 characters.</span>
+  </div>
+
+  <div class="field">
+    <label for="confirm">Confirm password</label>
+    <input id="confirm" class="pw" type="password" name="confirm"
+           autocomplete="new-password" minlength="8" required>
+  </div>
+
+  <label class="check"><input type="checkbox" id="show"> Show passwords</label>
+
+  <button class="btn primary wide" type="submit">Create account</button>
+</form>
+
+<script>
+  document.getElementById("show").addEventListener("change", function (e) {
+    document.querySelectorAll(".pw").forEach(function (i) {
+      i.type = e.target.checked ? "text" : "password";
+    });
+  });
+</script>
+{% endblock %}

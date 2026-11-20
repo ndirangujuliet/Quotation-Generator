@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{{ quote.quote_no }}{% endblock %}
+{% block actions %}
+  <button class="btn primary" onclick="window.print()">Print / Save as PDF</button>
+{% endblock %}
+
+{% block content %}
+{% set code = {'STANDARD': 'S', 'ZERO_RATED': 'Z', 'EXEMPT': 'E'} %}
+{% set label = {'STANDARD': 'Standard', 'ZERO_RATED': 'Zero-rated', 'EXEMPT': 'Exempt'} %}
+{% set cur = quote.currency %}
+
+<div class="head">
+  <div class="co">
+    {% if company.logo %}
+      <img class="logo-img" src="{{ url_for('static', filename=company.logo) }}" alt="Logo">
+    {% endif %}
+    <div class="name">{{ company.name }}</div>
+    <div>{{ company.email }}{% if company.email and company.phone %} · {% endif %}{{ company.phone }}</div>
+    <div>{{ company.address }}</div>
+    {% if company.kra_pin %}<div>PIN: {{ company.kra_pin }}</div>{% endif %}
+  </div>
+  <div>
+    <h1>QUOTATION</h1>
+    <div class="meta">
+      <label>Quote No.</label><span>{{ quote.quote_no }}</span>
+      <label>Date</label><span>{{ quote.issue_date }}</span>
+      <label>Valid until</label><span>{{ quote.valid_until }}</span>
+      <label>Currency</label><span>{{ cur }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="cust">
+  <span class="lbl">Quote for</span>
+  <div><strong>{{ quote.customer_name }}</strong></div>
+  {% if quote.email or quote.phone %}
+    <div>{{ quote.email or '' }}{% if quote.email and quote.phone %} · {% endif %}{{ quote.phone or '' }}</div>
+  {% endif %}
+  {% if quote.address %}<div>{{ quote.address }}</div>{% endif %}
+  {% if quote.kra_pin %}<div>PIN: {{ quote.kra_pin }}</div>{% endif %}
+</div>
+
+<div class="tw">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th>Description</th>
+        <th class="n" style="width:70px">Qty</th>
+        <th class="n" style="width:120px">Unit price</th>
+        <th class="center" style="width:60px">VAT</th>
+        <th class="n" style="width:130px">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in quote['items'] %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ i.description }}</td>
+        <td class="n">{{ '%g'|format(i.qty) }}</td>
+        <td class="n">{{ i.unit_price|money }}</td>
+        <td class="center">{{ code[i.tax_category] }}</td>
+        <td class="n">{{ i.line_net|money }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p class="legend">
+  S = Standard ({{ '%g'|format(quote.vat_rate) }}%) &nbsp;|&nbsp; Z = Zero-rated (0%) &nbsp;|&nbsp; E = Exempt (no VAT)
+</p>
+
+<div class="tot">
+  <span>Subtotal</span><span class="val">{{ cur }} {{ quote.subtotal|money }}</span>
+  {% if quote.discount_total > 0 %}
+    <span>Discount ({{ '%g'|format(quote.discount_percent) }}%)</span>
+    <span class="val">-{{ cur }} {{ quote.discount_total|money }}</span>
+  {% endif %}
+  <span>VAT</span><span class="val">{{ cur }} {{ quote.total_vat|money }}</span>
+  <span class="grand">Grand total</span>
+  <span class="grand val">{{ cur }} {{ quote.grand_total|money }}</span>
+</div>
+
+<h3 class="lbl" style="margin-top:22px">VAT summary</h3>
+<div class="tw">
+  <table class="summary">
+    <thead>
+      <tr><th>Category</th><th class="n">Net amount</th><th class="n">VAT</th></tr>
+    </thead>
+    <tbody>
+      {% for cat, v in summary.items() %}
+      <tr>
+        <td>{{ label[cat] }}{% if cat == 'STANDARD' %} ({{ '%g'|format(quote.vat_rate) }}%){% endif %}</td>
+        <td class="n">{{ v.net|money }}</td>
+        <td class="n">{% if cat == 'EXEMPT' %}n/a{% else %}{{ v.vat|money }}{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if quote.terms %}
+<div class="terms">
+  <span class="lbl">Terms &amp; notes</span>
+  <div class="terms-text">{{ quote.terms }}</div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "auth_base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<h1 class="auth-title">Sign in</h1>
+
+{% if error %}
+  <div class="flash error" role="alert">{{ error }}</div>
+{% endif %}
+
+<form method="post" class="auth-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="next" value="{{ next_url }}">
+
+  <div class="field">
+    <label for="username">Username</label>
+    <input id="username" name="username" value="{{ username }}"
+           autocomplete="username" autofocus required>
+  </div>
+
+  <div class="field">
+    <label for="password">Password</label>
+    <input id="password" class="pw" type="password" name="password"
+           autocomplete="current-password" required>
+  </div>
+
+  <label class="check"><input type="checkbox" id="show"> Show password</label>
+  <label class="check"><input type="checkbox" name="remember"> Keep me signed in on this computer</label>
+
+  <button class="btn primary wide" type="submit">Sign in</button>
+</form>
+
+<p class="hint">Forgot your password? Ask an administrator to reset it for you.</p>
+
+<script>
+  document.getElementById("show").addEventListener("change", function (e) {
+    document.querySelectorAll(".pw").forEach(function (i) {
+      i.type = e.target.checked ? "text" : "password";
+    });
+  });
+</script>
+{% endblock %}
